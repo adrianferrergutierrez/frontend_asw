@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Box,
     Card,
@@ -57,7 +57,10 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Profile = () => {
-    const [user, setUser] = useState<UserDetail | null>(null);
+    const [user, setUser] = useState<UserDetail | null>(() => {
+        const savedUser = localStorage.getItem('selectedUser');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
     const [users, setUsers] = useState<UserDetail[]>([]);
     const [issues, setIssues] = useState<Issue[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,6 +71,7 @@ const Profile = () => {
     const [userComments, setUserComments] = useState<Array<Comment & { issueSubject: string; issueId: number }>>([]);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [issueDetailOpen, setIssueDetailOpen] = useState(false);
+    const isFirstLoad = useRef(true);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -82,7 +86,9 @@ const Profile = () => {
                 
                 // Si no hay usuario seleccionado, seleccionar el primero
                 if (!user && usersResponse.data.length > 0) {
-                    setUser(usersResponse.data[0]);
+                    const firstUser = usersResponse.data[0];
+                    setUser(firstUser);
+                    localStorage.setItem('selectedUser', JSON.stringify(firstUser));
                 }
 
                 // Obtener comentarios para cada issue
@@ -122,12 +128,29 @@ const Profile = () => {
         };
 
         fetchData();
-    }, [user]);
+    }, []);
+
+    useEffect(() => {
+        if (user && issues.length > 0) {
+            const userComments = issues.flatMap(issue => {
+                if (!issue.comments) return [];
+                return issue.comments
+                    .filter(comment => comment.user.id === user.id)
+                    .map(comment => ({
+                        ...comment,
+                        issueSubject: issue.subject,
+                        issueId: issue.id
+                    }));
+            });
+            setUserComments(userComments);
+        }
+    }, [user, issues]);
 
     const handleUserChange = (event: any) => {
         const selectedUser = users.find(u => u.id === event.target.value);
         if (selectedUser) {
             setUser(selectedUser);
+            localStorage.setItem('selectedUser', JSON.stringify(selectedUser));
         }
     };
 
@@ -172,6 +195,11 @@ const Profile = () => {
     };
 
     const handleIssueClick = (issue: Issue) => {
+        console.log('Current user when opening issue:', user);
+        if (!user) {
+            console.error('No user selected');
+            return;
+        }
         setSelectedIssue(issue);
         setIssueDetailOpen(true);
     };
@@ -531,13 +559,16 @@ const Profile = () => {
                 </DialogActions>
             </Dialog>
 
-            <IssueDetail
-                open={issueDetailOpen}
-                onClose={handleCloseIssueDetail}
-                issue={selectedIssue}
-                onEdit={handleEditIssue}
-                onDelete={handleDeleteIssue}
-            />
+            {issueDetailOpen && selectedIssue && user && (
+                <IssueDetail
+                    open={issueDetailOpen}
+                    onClose={handleCloseIssueDetail}
+                    issue={selectedIssue}
+                    onEdit={handleEditIssue}
+                    onDelete={handleDeleteIssue}
+                    currentUser={user}
+                />
+            )}
         </Box>
     );
 };

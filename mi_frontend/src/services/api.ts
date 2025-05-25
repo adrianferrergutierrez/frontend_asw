@@ -44,7 +44,18 @@ export const deleteIssue = (id: number) => api.delete(`/issues/${id}`);
 
 // Comments
 export const getIssueComments = (issueId: number) => api.get(`/issues/${issueId}/comments`);
-export const createComment = (issueId: number, data: any) => api.post(`/issues/${issueId}/comments`, data);
+export const createComment = (issueId: number, data: any) => {
+    console.log('API call to create comment:', {
+        url: `/issues/${issueId}/comments`,
+        method: 'POST',
+        data
+    });
+    return api.post(`/issues/${issueId}/comments`, data, {
+        headers: {
+            'X-User-ID': data.user_id.toString()
+        }
+    });
+};
 export const updateComment = (issueId: number, commentId: number, data: any) => 
     api.put(`/issues/${issueId}/comments/${commentId}`, data);
 export const deleteComment = (issueId: number, commentId: number) => 

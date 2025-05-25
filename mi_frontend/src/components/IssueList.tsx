@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { getIssues, getIssueTypes, getSeverities, getPriorities, getStatuses } from '../services/api';
-import type { Issue, IssueType, Severity, Priority, Status } from '../types/index';
+import type { Issue, IssueType, Severity, Priority, Status, UserDetail } from '../types/index';
 import CreateIssueForm from './CreateIssueForm';
 import EditIssueForm from './EditIssueForm';
 import DeleteIssueDialog from './DeleteIssueDialog';
@@ -36,6 +36,10 @@ const IssueList = () => {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+    const [currentUser, setCurrentUser] = useState<UserDetail | null>(() => {
+        const savedUser = localStorage.getItem('selectedUser');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
     const [filters, setFilters] = useState({
         title: '',
         description: '',
@@ -137,6 +141,10 @@ const IssueList = () => {
     });
 
     const handleIssueClick = (issue: Issue) => {
+        if (!currentUser) {
+            setError('Por favor, selecciona un usuario en la pestaña de Perfil antes de ver los detalles del issue');
+            return;
+        }
         setSelectedIssue(issue);
         setDetailDialogOpen(true);
     };
@@ -374,6 +382,7 @@ const IssueList = () => {
                     setSelectedIssue(issue);
                     setDeleteDialogOpen(true);
                 }}
+                currentUser={currentUser!}
             />
         </Box>
     );

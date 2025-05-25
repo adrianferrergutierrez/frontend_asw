@@ -23,17 +23,29 @@ interface IssueDetailProps {
     issue: Issue | null;
     onEdit: (issue: Issue) => void;
     onDelete: (issue: Issue) => void;
+    currentUser: UserDetail;
 }
 
-const IssueDetail = ({ open, onClose, issue, onEdit, onDelete }: IssueDetailProps) => {
+const IssueDetail = ({ open, onClose, issue, onEdit, onDelete, currentUser }: IssueDetailProps) => {
+    console.log('IssueDetail mounted with user:', currentUser);
+    
     const [users, setUsers] = useState<UserDetail[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Reset state when dialog closes
     useEffect(() => {
+        if (!open) {
+            setNewComment('');
+            setComments([]);
+        }
+    }, [open]);
+
+    useEffect(() => {
+        console.log('IssueDetail effect running with user:', currentUser);
         const fetchData = async () => {
-            if (issue) {
+            if (issue && currentUser) {
                 try {
                     setLoading(true);
                     const [usersResponse, commentsResponse] = await Promise.all([
@@ -51,17 +63,29 @@ const IssueDetail = ({ open, onClose, issue, onEdit, onDelete }: IssueDetailProp
         };
 
         fetchData();
-    }, [issue]);
+    }, [issue, currentUser]);
 
     const handleAddComment = async () => {
-        if (!issue || !newComment.trim()) return;
+        console.log('Attempting to add comment with user:', currentUser);
+        if (!issue || !newComment.trim() || !currentUser) {
+            console.error('Cannot create comment: missing required data', {
+                hasIssue: !!issue,
+                hasComment: !!newComment.trim(),
+                hasUser: !!currentUser,
+                currentUser
+            });
+            return;
+        }
 
         try {
-            const response = await createComment(issue.id, { content: newComment.trim() });
-            const currentUser = users.find(u => u.id === response.data.user_id);
+            const response = await createComment(issue.id, { 
+                content: newComment.trim(),
+                user_id: currentUser.id 
+            });
+            
             const newCommentWithUser = {
                 ...response.data,
-                user: currentUser || response.data.user
+                user: currentUser
             };
             setComments(prev => [...prev, newCommentWithUser]);
             setNewComment('');
