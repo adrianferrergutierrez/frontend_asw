@@ -48,11 +48,25 @@ export const createComment = (issueId: number, data: any) => {
     console.log('API call to create comment:', {
         url: `/issues/${issueId}/comments`,
         method: 'POST',
-        data
-    });
-    return api.post(`/issues/${issueId}/comments`, data, {
+        data,
         headers: {
-            'X-User-ID': data.user_id.toString()
+            'X-API-Key': API_KEY,
+            'X-User-ID': data.user_id.toString(),
+            'Content-Type': 'application/json'
+        }
+    });
+
+    // Usar el user_id que viene en data (usuario actual seleccionado)
+    const requestData = {
+        ...data,
+        user_id: data.user_id
+    };
+
+    return api.post(`/issues/${issueId}/comments`, requestData, {
+        headers: {
+            'X-API-Key': API_KEY,
+            'X-User-ID': data.user_id.toString(),
+            'Content-Type': 'application/json'
         }
     });
 };
