@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = 'https://waslab04-p1hk.onrender.com/api/v1';
-const API_KEY = 'QyYrixzL75McEOkB6NlV1tcxG4IW5Ofw';
+const API_KEY = 'OPGPjVjDxM7u5jshpus4tKiTFjfplKtA';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -90,5 +90,19 @@ export const deleteStatus = (id: number) => api.delete(`/statuses/${id}`);
 
 // Users
 export const getUsers = () => api.get('/users');
+export const updateUser = (id: number, data: any) => {
+    console.log('API call to update user bio:', {
+        url: `/users/${id}/bio_edit`,
+        method: 'PUT',
+        data
+    });
+    return api.put(`/users/${id}/bio_edit`, data, {
+        headers: {
+            'X-API-Key': API_KEY,
+            'X-User-ID': id.toString(),
+            'Content-Type': 'application/json'
+        }
+    });
+};
 
 export default api; 

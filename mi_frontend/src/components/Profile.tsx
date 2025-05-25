@@ -12,9 +12,17 @@ import {
     Divider,
     Stack,
     CircularProgress,
-    Alert
+    Alert,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField
 } from '@mui/material';
-import { getIssues, getUsers } from '../services/api';
+import EditIcon from '@mui/icons-material/Edit';
+import { getIssues, getUsers, updateUser } from '../services/api';
 import type { Issue, UserDetail } from '../types/index';
 
 interface TabPanelProps {
@@ -49,6 +57,8 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tabValue, setTabValue] = useState(0);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editedBio, setEditedBio] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -76,6 +86,42 @@ const Profile = () => {
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
+    };
+
+    const handleEditClick = () => {
+        setEditedBio(user?.bio || '');
+        setEditDialogOpen(true);
+    };
+
+    const handleSaveBio = async () => {
+        if (!user) return;
+        
+        try {
+            const updateData = {
+                bio: editedBio.trim()
+            };
+            
+            console.log('Sending update request with data:', updateData);
+            
+            const response = await updateUser(user.id, updateData);
+            
+            console.log('Update response:', response);
+            if (response.data && response.data.bio) {
+                setUser(prev => prev ? { ...prev, bio: response.data.bio } : null);
+                setEditDialogOpen(false);
+            } else {
+                throw new Error('Invalid response format');
+            }
+        } catch (err: any) {
+            console.error('Error updating bio:', err);
+            console.error('Error details:', {
+                message: err.message,
+                response: err.response?.data,
+                status: err.response?.status,
+                config: err.config
+            });
+            setError('Error al actualizar la biografía');
+        }
     };
 
     if (loading) {
@@ -124,11 +170,29 @@ const Profile = () => {
                                 <Typography color="textSecondary" gutterBottom>
                                     {user.email}
                                 </Typography>
-                                {user.bio && (
-                                    <Typography variant="body2" color="textSecondary" sx={{ mt: 2, textAlign: 'center' }}>
-                                        {user.bio}
-                                    </Typography>
-                                )}
+                                <Box sx={{ mt: 2, textAlign: 'center', position: 'relative', width: '100%' }}>
+                                    {user.bio ? (
+                                        <Typography variant="body2" color="textSecondary">
+                                            {user.bio}
+                                        </Typography>
+                                    ) : (
+                                        <Typography variant="body2" color="textSecondary">
+                                            No hay biografía
+                                        </Typography>
+                                    )}
+                                    <IconButton 
+                                        size="small" 
+                                        onClick={handleEditClick}
+                                        sx={{ 
+                                            position: 'absolute',
+                                            right: 40,
+                                            top: '50%',
+                                            transform: 'translateY(-50%)'
+                                        }}
+                                    >
+                                        <EditIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
                             </Box>
                         </Box>
                         <Box sx={{ width: { xs: '100%', md: '67%' } }}>
@@ -325,6 +389,27 @@ const Profile = () => {
                     </Stack>
                 </TabPanel>
             </Box>
+
+            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+                <DialogTitle>Editar Biografía</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Biografía"
+                        type="text"
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={editedBio}
+                        onChange={(e) => setEditedBio(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSaveBio} variant="contained">Guardar</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
