@@ -1,4 +1,4 @@
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
 import IssueList from './components/IssueList';
 
 const theme = createTheme({
@@ -17,7 +17,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <IssueList />
+      <Box sx={{ width: '100vw', minHeight: '100vh' }}>
+        <IssueList />
+      </Box>
     </ThemeProvider>
   );
 }

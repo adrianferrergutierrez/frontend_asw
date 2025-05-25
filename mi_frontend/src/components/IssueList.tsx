@@ -21,6 +21,7 @@ import type { Issue, IssueType, Severity, Priority, Status } from '../types/inde
 import CreateIssueForm from './CreateIssueForm';
 import EditIssueForm from './EditIssueForm';
 import DeleteIssueDialog from './DeleteIssueDialog';
+import IssueDetail from './IssueDetail';
 
 const IssueList = () => {
     const [issues, setIssues] = useState<Issue[]>([]);
@@ -33,6 +34,7 @@ const IssueList = () => {
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [filters, setFilters] = useState({
         title: '',
@@ -134,12 +136,19 @@ const IssueList = () => {
         return matchesTitle && matchesType && matchesSeverity && matchesPriority && matchesStatus;
     });
 
-    const handleEditClick = (issue: Issue) => {
+    const handleIssueClick = (issue: Issue) => {
+        setSelectedIssue(issue);
+        setDetailDialogOpen(true);
+    };
+
+    const handleEditClick = (event: React.MouseEvent, issue: Issue) => {
+        event.stopPropagation();
         setSelectedIssue(issue);
         setEditDialogOpen(true);
     };
 
-    const handleDeleteClick = (issue: Issue) => {
+    const handleDeleteClick = (event: React.MouseEvent, issue: Issue) => {
+        event.stopPropagation();
         setSelectedIssue(issue);
         setDeleteDialogOpen(true);
     };
@@ -159,7 +168,13 @@ const IssueList = () => {
     );
 
     return (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ 
+            p: 3, 
+            width: '100%', 
+            maxWidth: '100%',
+            minHeight: '100vh',
+            boxSizing: 'border-box'
+        }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
                 <Typography variant="h4">
                     Issues
@@ -247,7 +262,16 @@ const IssueList = () => {
                     </Alert>
                 ) : (
                     filteredIssues.map((issue: Issue) => (
-                        <Card key={issue.id}>
+                        <Card 
+                            key={issue.id}
+                            onClick={() => handleIssueClick(issue)}
+                            sx={{ 
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    backgroundColor: 'action.hover'
+                                }
+                            }}
+                        >
                             <CardContent>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <Box>
@@ -281,13 +305,13 @@ const IssueList = () => {
                                     <Box>
                                         <IconButton 
                                             size="small"
-                                            onClick={() => handleEditClick(issue)}
+                                            onClick={(e) => handleEditClick(e, issue)}
                                         >
                                             <EditIcon />
                                         </IconButton>
                                         <IconButton 
                                             size="small"
-                                            onClick={() => handleDeleteClick(issue)}
+                                            onClick={(e) => handleDeleteClick(e, issue)}
                                         >
                                             <DeleteIcon />
                                         </IconButton>
@@ -331,6 +355,25 @@ const IssueList = () => {
                 }}
                 onIssueDeleted={fetchData}
                 issue={selectedIssue}
+            />
+
+            <IssueDetail
+                open={detailDialogOpen}
+                onClose={() => {
+                    setDetailDialogOpen(false);
+                    setSelectedIssue(null);
+                }}
+                issue={selectedIssue}
+                onEdit={(issue) => {
+                    setDetailDialogOpen(false);
+                    setSelectedIssue(issue);
+                    setEditDialogOpen(true);
+                }}
+                onDelete={(issue) => {
+                    setDetailDialogOpen(false);
+                    setSelectedIssue(issue);
+                    setDeleteDialogOpen(true);
+                }}
             />
         </Box>
     );
