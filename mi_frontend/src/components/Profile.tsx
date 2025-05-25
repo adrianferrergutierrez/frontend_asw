@@ -19,7 +19,11 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    TextField
+    TextField,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { getIssues, getUsers, updateUser } from '../services/api';
@@ -53,6 +57,7 @@ function TabPanel(props: TabPanelProps) {
 
 const Profile = () => {
     const [user, setUser] = useState<UserDetail | null>(null);
+    const [users, setUsers] = useState<UserDetail[]>([]);
     const [issues, setIssues] = useState<Issue[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -68,11 +73,13 @@ const Profile = () => {
                     getIssues()
                 ]);
                 
-                // Por ahora, tomamos el primer usuario como ejemplo
-                // En una implementación real, esto vendría de la autenticación
-                const currentUser = usersResponse.data[0];
-                setUser(currentUser);
+                setUsers(usersResponse.data);
                 setIssues(issuesResponse.data);
+                
+                // Si no hay usuario seleccionado, seleccionar el primero
+                if (!user && usersResponse.data.length > 0) {
+                    setUser(usersResponse.data[0]);
+                }
             } catch (err) {
                 console.error('Error fetching profile data:', err);
                 setError('Error al cargar los datos del perfil');
@@ -83,6 +90,13 @@ const Profile = () => {
 
         fetchData();
     }, []);
+
+    const handleUserChange = (event: any) => {
+        const selectedUser = users.find(u => u.id === event.target.value);
+        if (selectedUser) {
+            setUser(selectedUser);
+        }
+    };
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -154,6 +168,25 @@ const Profile = () => {
 
     return (
         <Box sx={{ width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
+            <Card sx={{ width: '100%', borderRadius: 0, mb: 2 }}>
+                <CardContent>
+                    <FormControl fullWidth>
+                        <InputLabel>Seleccionar Usuario</InputLabel>
+                        <Select
+                            value={user.id}
+                            label="Seleccionar Usuario"
+                            onChange={handleUserChange}
+                        >
+                            {users.map((u) => (
+                                <MenuItem key={u.id} value={u.id}>
+                                    {u.name || u.email}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </CardContent>
+            </Card>
+
             <Card sx={{ width: '100%', borderRadius: 0 }}>
                 <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
@@ -171,27 +204,23 @@ const Profile = () => {
                                     {user.email}
                                 </Typography>
                                 <Box sx={{ mt: 2, textAlign: 'center', position: 'relative', width: '100%' }}>
-                                    {user.bio ? (
-                                        <Typography variant="body2" color="textSecondary">
-                                            {user.bio}
-                                        </Typography>
-                                    ) : (
-                                        <Typography variant="body2" color="textSecondary">
-                                            No hay biografía
-                                        </Typography>
-                                    )}
-                                    <IconButton 
-                                        size="small" 
-                                        onClick={handleEditClick}
-                                        sx={{ 
-                                            position: 'absolute',
-                                            right: 40,
-                                            top: '50%',
-                                            transform: 'translateY(-50%)'
-                                        }}
-                                    >
-                                        <EditIcon fontSize="small" />
-                                    </IconButton>
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                                        {user.bio ? (
+                                            <Typography variant="body2" color="textSecondary">
+                                                {user.bio}
+                                            </Typography>
+                                        ) : (
+                                            <Typography variant="body2" color="textSecondary">
+                                                No hay biografía
+                                            </Typography>
+                                        )}
+                                        <IconButton 
+                                            size="small" 
+                                            onClick={handleEditClick}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
                                 </Box>
                             </Box>
                         </Box>
