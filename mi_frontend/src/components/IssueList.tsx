@@ -4,7 +4,6 @@ import {
     Card, 
     CardContent, 
     Typography, 
-    Grid, 
     Chip,
     IconButton,
     Button,
@@ -12,11 +11,16 @@ import {
     MenuItem,
     Select,
     FormControl,
-    InputLabel
+    InputLabel,
+    Alert,
+    Stack
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { getIssues, getIssueTypes, getSeverities, getPriorities, getStatuses } from '../services/api';
-import { Issue, IssueType, Severity, Priority, Status } from '../types';
+import type { Issue, IssueType, Severity, Priority, Status } from '../types/index';
+import CreateIssueForm from './CreateIssueForm';
+import EditIssueForm from './EditIssueForm';
+import DeleteIssueDialog from './DeleteIssueDialog';
 
 const IssueList = () => {
     const [issues, setIssues] = useState<Issue[]>([]);
@@ -26,6 +30,10 @@ const IssueList = () => {
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [filters, setFilters] = useState({
         title: '',
         description: '',
@@ -37,59 +45,148 @@ const IssueList = () => {
         order_direction: 'desc'
     });
 
+    const fetchData = async () => {
+        try {
+            console.log('Fetching data...');
+            const [issuesRes, typesRes, severitiesRes, prioritiesRes, statusesRes] = await Promise.all([
+                getIssues(),
+                getIssueTypes(),
+                getSeverities(),
+                getPriorities(),
+                getStatuses()
+            ]);
+
+            console.log('Data received:', {
+                issues: issuesRes.data,
+                types: typesRes.data,
+                severities: severitiesRes.data,
+                priorities: prioritiesRes.data,
+                statuses: statusesRes.data
+            });
+
+            setIssues(issuesRes.data);
+            setIssueTypes(typesRes.data);
+            setSeverities(severitiesRes.data);
+            setPriorities(prioritiesRes.data);
+            setStatuses(statusesRes.data);
+            setLoading(false);
+        } catch (err: any) {
+            console.error('Error fetching data:', err);
+            setError(err.response?.data?.error || err.message || 'Error al cargar los datos');
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [issuesRes, typesRes, severitiesRes, prioritiesRes, statusesRes] = await Promise.all([
-                    getIssues(),
-                    getIssueTypes(),
-                    getSeverities(),
-                    getPriorities(),
-                    getStatuses()
-                ]);
-
-                setIssues(issuesRes.data);
-                setIssueTypes(typesRes.data);
-                setSeverities(severitiesRes.data);
-                setPriorities(prioritiesRes.data);
-                setStatuses(statusesRes.data);
-                setLoading(false);
-            } catch (err) {
-                setError('Error al cargar los datos');
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
 
     const handleFilterChange = (field: string) => (event: any) => {
-        setFilters({
-            ...filters,
-            [field]: event.target.value
-        });
+        const value = event.target.value;
+        console.log(`Filter ${field} changed to:`, value);
+        setFilters(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
-    if (loading) return <Typography>Cargando...</Typography>;
-    if (error) return <Typography color="error">{error}</Typography>;
+    // Filtrar los issues según los criterios seleccionados
+    const filteredIssues = issues.filter(issue => {
+        // Filtro por título (búsqueda parcial, no distingue mayúsculas/minúsculas)
+        const matchesTitle = !filters.title || 
+            issue.subject.toLowerCase().includes(filters.title.toLowerCase());
+
+        // Filtro por tipo de issue
+        const matchesType = !filters.issue_type_id || 
+            issue.issue_type.id === parseInt(filters.issue_type_id);
+
+        // Filtro por severidad
+        const matchesSeverity = !filters.severity_id || 
+            issue.severity.id === parseInt(filters.severity_id);
+
+        // Filtro por prioridad
+        const matchesPriority = !filters.priority_id || 
+            issue.priority.id === parseInt(filters.priority_id);
+
+        // Filtro por estado
+        const matchesStatus = !filters.status_id || 
+            issue.status.id === parseInt(filters.status_id);
+
+        // Mostrar en consola para depuración
+        console.log('Filtering issue:', {
+            issue: issue.subject,
+            title: filters.title,
+            matchesTitle,
+            type: issue.issue_type.id,
+            filterType: filters.issue_type_id,
+            matchesType,
+            severity: issue.severity.id,
+            filterSeverity: filters.severity_id,
+            matchesSeverity,
+            priority: issue.priority.id,
+            filterPriority: filters.priority_id,
+            matchesPriority,
+            status: issue.status.id,
+            filterStatus: filters.status_id,
+            matchesStatus
+        });
+
+        return matchesTitle && matchesType && matchesSeverity && matchesPriority && matchesStatus;
+    });
+
+    const handleEditClick = (issue: Issue) => {
+        setSelectedIssue(issue);
+        setEditDialogOpen(true);
+    };
+
+    const handleDeleteClick = (issue: Issue) => {
+        setSelectedIssue(issue);
+        setDeleteDialogOpen(true);
+    };
+
+    if (loading) return (
+        <Box sx={{ p: 3 }}>
+            <Typography>Cargando...</Typography>
+        </Box>
+    );
+
+    if (error) return (
+        <Box sx={{ p: 3 }}>
+            <Alert severity="error">
+                {error}
+            </Alert>
+        </Box>
+    );
 
     return (
         <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>
-                Issues
-            </Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Typography variant="h4">
+                    Issues
+                </Typography>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => setCreateDialogOpen(true)}
+                    sx={{ minWidth: '150px' }}
+                >
+                    Crear Issue
+                </Button>
+            </Stack>
 
             {/* Filtros */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <TextField
                         fullWidth
                         label="Título"
                         value={filters.title}
                         onChange={handleFilterChange('title')}
+                        placeholder="Buscar por título..."
                     />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                </Box>
+                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <FormControl fullWidth>
                         <InputLabel>Tipo</InputLabel>
                         <Select
@@ -98,15 +195,15 @@ const IssueList = () => {
                             label="Tipo"
                         >
                             <MenuItem value="">Todos</MenuItem>
-                            {issueTypes.map(type => (
+                            {issueTypes.map((type: IssueType) => (
                                 <MenuItem key={type.id} value={type.id}>
                                     {type.name}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                </Box>
+                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <FormControl fullWidth>
                         <InputLabel>Severidad</InputLabel>
                         <Select
@@ -115,15 +212,15 @@ const IssueList = () => {
                             label="Severidad"
                         >
                             <MenuItem value="">Todas</MenuItem>
-                            {severities.map(severity => (
+                            {severities.map((severity: Severity) => (
                                 <MenuItem key={severity.id} value={severity.id}>
                                     {severity.name}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                </Box>
+                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <FormControl fullWidth>
                         <InputLabel>Prioridad</InputLabel>
                         <Select
@@ -132,21 +229,25 @@ const IssueList = () => {
                             label="Prioridad"
                         >
                             <MenuItem value="">Todas</MenuItem>
-                            {priorities.map(priority => (
+                            {priorities.map((priority: Priority) => (
                                 <MenuItem key={priority.id} value={priority.id}>
                                     {priority.name}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
-                </Grid>
-            </Grid>
+                </Box>
+            </Box>
 
             {/* Lista de Issues */}
-            <Grid container spacing={2}>
-                {issues.map(issue => (
-                    <Grid item xs={12} key={issue.id}>
-                        <Card>
+            <Stack spacing={2}>
+                {filteredIssues.length === 0 ? (
+                    <Alert severity="info">
+                        No se encontraron issues que coincidan con los filtros.
+                    </Alert>
+                ) : (
+                    filteredIssues.map((issue: Issue) => (
+                        <Card key={issue.id}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <Box>
@@ -178,19 +279,59 @@ const IssueList = () => {
                                         </Box>
                                     </Box>
                                     <Box>
-                                        <IconButton size="small">
+                                        <IconButton 
+                                            size="small"
+                                            onClick={() => handleEditClick(issue)}
+                                        >
                                             <EditIcon />
                                         </IconButton>
-                                        <IconButton size="small">
+                                        <IconButton 
+                                            size="small"
+                                            onClick={() => handleDeleteClick(issue)}
+                                        >
                                             <DeleteIcon />
                                         </IconButton>
                                     </Box>
                                 </Box>
                             </CardContent>
                         </Card>
-                    </Grid>
-                ))}
-            </Grid>
+                    ))
+                )}
+            </Stack>
+
+            <CreateIssueForm
+                open={createDialogOpen}
+                onClose={() => setCreateDialogOpen(false)}
+                onIssueCreated={fetchData}
+                issueTypes={issueTypes}
+                severities={severities}
+                priorities={priorities}
+                statuses={statuses}
+            />
+
+            <EditIssueForm
+                open={editDialogOpen}
+                onClose={() => {
+                    setEditDialogOpen(false);
+                    setSelectedIssue(null);
+                }}
+                onIssueUpdated={fetchData}
+                issue={selectedIssue}
+                issueTypes={issueTypes}
+                severities={severities}
+                priorities={priorities}
+                statuses={statuses}
+            />
+
+            <DeleteIssueDialog
+                open={deleteDialogOpen}
+                onClose={() => {
+                    setDeleteDialogOpen(false);
+                    setSelectedIssue(null);
+                }}
+                onIssueDeleted={fetchData}
+                issue={selectedIssue}
+            />
         </Box>
     );
 };

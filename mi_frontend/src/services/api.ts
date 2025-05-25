@@ -1,13 +1,39 @@
 import axios from 'axios';
 
 const API_URL = 'https://waslab04-p1hk.onrender.com/api/v1';
+const API_KEY = 'QyYrixzL75McEOkB6NlV1tcxG4IW5Ofw';
 
 const api = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
+        'X-API-Key': API_KEY
     },
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+    (config) => {
+        console.log('Request:', config);
+        return config;
+    },
+    (error) => {
+        console.error('Request Error:', error);
+        return Promise.reject(error);
+    }
+);
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+    (response) => {
+        console.log('Response:', response);
+        return response;
+    },
+    (error) => {
+        console.error('Response Error:', error.response || error);
+        return Promise.reject(error);
+    }
+);
 
 // Issues
 export const getIssues = () => api.get('/issues');
