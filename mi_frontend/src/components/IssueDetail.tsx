@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -11,7 +12,8 @@ import {
     Divider
 } from '@mui/material';
 import { Close as CloseIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import type { Issue } from '../types/index';
+import type { Issue, UserDetail } from '../types/index';
+import { getUsers } from '../services/api';
 
 interface IssueDetailProps {
     open: boolean;
@@ -22,7 +24,35 @@ interface IssueDetailProps {
 }
 
 const IssueDetail = ({ open, onClose, issue, onEdit, onDelete }: IssueDetailProps) => {
+    const [assignee, setAssignee] = useState<UserDetail | null>(null);
+
+    useEffect(() => {
+        const fetchAssignee = async () => {
+            if (issue?.assignee_id) {
+                try {
+                    const response = await getUsers();
+                    const user = response.data.find((u: UserDetail) => u.id === issue.assignee_id);
+                    if (user) {
+                        setAssignee(user);
+                    }
+                } catch (err) {
+                    console.error('Error fetching assignee details:', err);
+                }
+            } else {
+                setAssignee(null);
+            }
+        };
+
+        if (open && issue) {
+            fetchAssignee();
+        }
+    }, [open, issue]);
+
     if (!issue) return null;
+
+    console.log('Issue completa:', JSON.stringify(issue, null, 2));
+    console.log('Assignee ID:', issue.assignee_id);
+    console.log('Assignee details:', assignee);
 
     return (
         <Dialog 
@@ -110,10 +140,10 @@ const IssueDetail = ({ open, onClose, issue, onEdit, onDelete }: IssueDetailProp
                         </Typography>
                         <Stack spacing={1}>
                             <Typography variant="body2">
-                                <strong>Creado por:</strong> {issue.user?.username || 'N/A'}
+                                <strong>Creado por:</strong> {issue.user?.email || 'N/A'}
                             </Typography>
                             <Typography variant="body2">
-                                <strong>Asignado a:</strong> {issue.assignee?.username || 'No asignado'}
+                                <strong>Asignado a:</strong> {assignee ? assignee.email : 'No asignado'}
                             </Typography>
                             <Typography variant="body2">
                                 <strong>Fecha de creación:</strong> {new Date(issue.created_at).toLocaleString()}

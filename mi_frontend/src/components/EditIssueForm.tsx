@@ -13,8 +13,8 @@ import {
     DialogActions,
     Alert
 } from '@mui/material';
-import { updateIssue } from '../services/api';
-import type { Issue, IssueType, Severity, Priority, Status } from '../types/index';
+import { updateIssue, getUsers } from '../services/api';
+import type { Issue, IssueType, Severity, Priority, Status, User } from '../types/index';
 
 interface EditIssueFormProps {
     open: boolean;
@@ -27,15 +27,15 @@ interface EditIssueFormProps {
     statuses: Status[];
 }
 
-const EditIssueForm = ({ 
-    open, 
-    onClose, 
+const EditIssueForm = ({
+    open,
+    onClose,
     onIssueUpdated,
     issue,
     issueTypes,
     severities,
     priorities,
-    statuses 
+    statuses
 }: EditIssueFormProps) => {
     const [formData, setFormData] = useState({
         subject: '',
@@ -43,10 +43,28 @@ const EditIssueForm = ({
         issue_type_id: '',
         severity_id: '',
         priority_id: '',
-        status_id: ''
+        status_id: '',
+        assignee_id: ''
     });
-    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await getUsers();
+                setUsers(response.data);
+            } catch (err: any) {
+                console.error('Error fetching users:', err);
+                setError(err.response?.data?.error || err.message || 'Error al cargar los usuarios');
+            }
+        };
+
+        if (open) {
+            fetchUsers();
+        }
+    }, [open]);
 
     useEffect(() => {
         if (issue) {
@@ -56,16 +74,17 @@ const EditIssueForm = ({
                 issue_type_id: issue.issue_type.id.toString(),
                 severity_id: issue.severity.id.toString(),
                 priority_id: issue.priority.id.toString(),
-                status_id: issue.status.id.toString()
+                status_id: issue.status.id.toString(),
+                assignee_id: issue.assignee?.id.toString() || ''
             });
         }
     }, [issue]);
 
     const handleChange = (field: string) => (event: any) => {
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             [field]: event.target.value
-        });
+        }));
     };
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -76,7 +95,14 @@ const EditIssueForm = ({
         setError(null);
 
         try {
-            await updateIssue(issue.id, formData);
+            await updateIssue(issue.id, {
+                ...formData,
+                issue_type_id: parseInt(formData.issue_type_id),
+                severity_id: parseInt(formData.severity_id),
+                priority_id: parseInt(formData.priority_id),
+                status_id: parseInt(formData.status_id),
+                assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null
+            });
             onIssueUpdated();
             onClose();
         } catch (err: any) {
@@ -90,7 +116,7 @@ const EditIssueForm = ({
     if (!issue) return null;
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle>Editar Issue</DialogTitle>
             <form onSubmit={handleSubmit}>
                 <DialogContent>
@@ -176,16 +202,36 @@ const EditIssueForm = ({
                                 ))}
                             </Select>
                         </FormControl>
+                        <FormControl fullWidth>
+                            <InputLabel>Asignar a</InputLabel>
+                            <Select
+                                value={formData.assignee_id}
+                                onChange={handleChange('assignee_id')}
+                                label="Asignar a"
+                            >
+                                <MenuItem value="">
+                                    <em>Sin asignar</em>
+                                </MenuItem>
+                                {users.map((user) => (
+                                    <MenuItem key={user.id} value={user.id}>
+                                        {user.username}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                     </Box>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={onClose}>Cancelar</Button>
+                    <Button onClick={onClose} disabled={loading}>
+                        Cancelar
+                    </Button>
                     <Button 
                         type="submit" 
                         variant="contained" 
+                        color="primary"
                         disabled={loading}
                     >
-                        {loading ? 'Guardando...' : 'Guardar Cambios'}
+                        {loading ? 'Guardando...' : 'Guardar'}
                     </Button>
                 </DialogActions>
             </form>

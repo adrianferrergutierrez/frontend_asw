@@ -88,4 +88,7 @@ export const createStatus = (data: any) => api.post('/statuses', data);
 export const updateStatus = (id: number, data: any) => api.put(`/statuses/${id}`, data);
 export const deleteStatus = (id: number) => api.delete(`/statuses/${id}`);
 
+// Users
+export const getUsers = () => api.get('/users');
+
 export default api; 

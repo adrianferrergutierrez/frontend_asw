@@ -69,14 +69,22 @@ export interface Issue {
     id: number;
     subject: string;
     content: string;
+    user_id: number;
     created_at: string;
     updated_at: string;
-    user: User;
-    assignee: User;
+    status_id: number;
+    issue_type_id: number;
+    severity_id: number;
+    priority_id: number;
+    assignee_id: number | null;
+    deadline: string | null;
     issue_type: IssueType;
     severity: Severity;
     priority: Priority;
     status: Status;
+    user: User;
+    comments: Comment[];
+    watcher_ids: number[];
 }
 
 export interface IssueInput {
