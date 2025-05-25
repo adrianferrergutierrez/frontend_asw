@@ -26,8 +26,9 @@ import {
     MenuItem
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { getIssues, getUsers, updateUser } from '../services/api';
-import type { Issue, UserDetail } from '../types/index';
+import { getIssues, getUsers, updateUser, getIssueComments } from '../services/api';
+import type { Issue, UserDetail, Comment } from '../types/index';
+import IssueDetail from './IssueDetail';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -64,6 +65,9 @@ const Profile = () => {
     const [tabValue, setTabValue] = useState(0);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editedBio, setEditedBio] = useState('');
+    const [userComments, setUserComments] = useState<Array<Comment & { issueSubject: string; issueId: number }>>([]);
+    const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+    const [issueDetailOpen, setIssueDetailOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,6 +84,35 @@ const Profile = () => {
                 if (!user && usersResponse.data.length > 0) {
                     setUser(usersResponse.data[0]);
                 }
+
+                // Obtener comentarios para cada issue
+                const commentsPromises = issuesResponse.data.map((issue: Issue) => 
+                    getIssueComments(issue.id)
+                        .then(response => ({
+                            issueId: issue.id,
+                            issueSubject: issue.subject,
+                            comments: response.data
+                        }))
+                        .catch(error => {
+                            console.error(`Error fetching comments for issue ${issue.id}:`, error);
+                            return {
+                                issueId: issue.id,
+                                issueSubject: issue.subject,
+                                comments: []
+                            };
+                        })
+                );
+
+                const commentsResults = await Promise.all(commentsPromises);
+                const allComments = commentsResults.flatMap(result => 
+                    result.comments.map((comment: Comment) => ({
+                        ...comment,
+                        issueSubject: result.issueSubject,
+                        issueId: result.issueId
+                    }))
+                );
+
+                setUserComments(allComments.filter(comment => comment.user.id === user?.id));
             } catch (err) {
                 console.error('Error fetching profile data:', err);
                 setError('Error al cargar los datos del perfil');
@@ -89,7 +122,7 @@ const Profile = () => {
         };
 
         fetchData();
-    }, []);
+    }, [user]);
 
     const handleUserChange = (event: any) => {
         const selectedUser = users.find(u => u.id === event.target.value);
@@ -136,6 +169,26 @@ const Profile = () => {
             });
             setError('Error al actualizar la biografía');
         }
+    };
+
+    const handleIssueClick = (issue: Issue) => {
+        setSelectedIssue(issue);
+        setIssueDetailOpen(true);
+    };
+
+    const handleCloseIssueDetail = () => {
+        setIssueDetailOpen(false);
+        setSelectedIssue(null);
+    };
+
+    const handleEditIssue = (issue: Issue) => {
+        // Aquí podrías implementar la lógica de edición si es necesario
+        console.log('Edit issue:', issue);
+    };
+
+    const handleDeleteIssue = (issue: Issue) => {
+        // Aquí podrías implementar la lógica de eliminación si es necesario
+        console.log('Delete issue:', issue);
     };
 
     if (loading) {
@@ -270,7 +323,7 @@ const Profile = () => {
                                         <Card>
                                             <CardContent>
                                                 <Typography variant="h4" align="center">
-                                                    {issues.reduce((count, issue) => count + (issue.comments?.length || 0), 0)}
+                                                    {userComments.length}
                                                 </Typography>
                                                 <Typography variant="body2" color="textSecondary" align="center">
                                                     Comentarios
@@ -290,12 +343,17 @@ const Profile = () => {
                     <Tab label="Issues creados" />
                     <Tab label="Issues asignados" />
                     <Tab label="Issues seguidos" />
+                    <Tab label="Mis comentarios" />
                 </Tabs>
 
                 <TabPanel value={tabValue} index={0}>
                     <Stack spacing={2}>
                         {createdIssues.map(issue => (
-                            <Card key={issue.id}>
+                            <Card 
+                                key={issue.id}
+                                onClick={() => handleIssueClick(issue)}
+                                sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                            >
                                 <CardContent>
                                     <Typography variant="h6">{issue.subject}</Typography>
                                     <Typography color="textSecondary" gutterBottom>
@@ -337,7 +395,11 @@ const Profile = () => {
                 <TabPanel value={tabValue} index={1}>
                     <Stack spacing={2}>
                         {assignedIssues.map(issue => (
-                            <Card key={issue.id}>
+                            <Card 
+                                key={issue.id}
+                                onClick={() => handleIssueClick(issue)}
+                                sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                            >
                                 <CardContent>
                                     <Typography variant="h6">{issue.subject}</Typography>
                                     <Typography color="textSecondary" gutterBottom>
@@ -379,7 +441,11 @@ const Profile = () => {
                 <TabPanel value={tabValue} index={2}>
                     <Stack spacing={2}>
                         {watchedIssues.map(issue => (
-                            <Card key={issue.id}>
+                            <Card 
+                                key={issue.id}
+                                onClick={() => handleIssueClick(issue)}
+                                sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                            >
                                 <CardContent>
                                     <Typography variant="h6">{issue.subject}</Typography>
                                     <Typography color="textSecondary" gutterBottom>
@@ -417,6 +483,31 @@ const Profile = () => {
                         )}
                     </Stack>
                 </TabPanel>
+
+                <TabPanel value={tabValue} index={3}>
+                    <Stack spacing={2}>
+                        {userComments.map(comment => (
+                            <Card key={`${comment.issueId}-${comment.id}`}>
+                                <CardContent>
+                                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                        Comentario en: {comment.issueSubject}
+                                    </Typography>
+                                    <Typography variant="body1" paragraph>
+                                        {comment.content}
+                                    </Typography>
+                                    <Typography variant="caption" color="textSecondary">
+                                        {new Date(comment.created_at).toLocaleString()}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        ))}
+                        {userComments.length === 0 && (
+                            <Typography color="textSecondary" align="center">
+                                No has realizado ningún comentario
+                            </Typography>
+                        )}
+                    </Stack>
+                </TabPanel>
             </Box>
 
             <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
@@ -439,6 +530,14 @@ const Profile = () => {
                     <Button onClick={handleSaveBio} variant="contained">Guardar</Button>
                 </DialogActions>
             </Dialog>
+
+            <IssueDetail
+                open={issueDetailOpen}
+                onClose={handleCloseIssueDetail}
+                issue={selectedIssue}
+                onEdit={handleEditIssue}
+                onDelete={handleDeleteIssue}
+            />
         </Box>
     );
 };
