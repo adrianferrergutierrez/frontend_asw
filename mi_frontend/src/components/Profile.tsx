@@ -222,11 +222,28 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
         try {
             setUploadingProfilePic(true);
             const file = event.target.files[0];
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                throw new Error('El archivo debe ser una imagen');
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('La imagen no debe superar los 5MB');
+            }
+            
+            console.log('Uploading file:', {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            });
+            
             const response = await updateUserProfilePic(user.id, file);
             
             if (response.data && response.data.avatar_url) {
                 setUser(prev => prev ? { ...prev, avatar_url: response.data.avatar_url } : null);
-                // Actualizar el usuario en localStorage
+                // Update user in localStorage
                 if (user) {
                     const updatedUser = { ...user, avatar_url: response.data.avatar_url };
                     localStorage.setItem('selectedUser', JSON.stringify(updatedUser));
@@ -234,10 +251,40 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
             }
         } catch (err: any) {
             console.error('Error updating profile picture:', err);
-            setError('Error al actualizar la foto de perfil');
+            
+            // Log the full error response for debugging
+            console.error('Full error response:', {
+                status: err.response?.status,
+                data: err.response?.data,
+                message: err.message,
+                headers: err.response?.headers
+            });
+
+            // Try to get the most specific error message
+            let errorMessage = 'Error al actualizar la foto de perfil';
+            
+            if (err.response?.data) {
+                console.error('Server error data:', JSON.stringify(err.response.data, null, 2));
+                
+                if (typeof err.response.data === 'string') {
+                    errorMessage = err.response.data;
+                } else if (err.response.data.message) {
+                    errorMessage = err.response.data.message;
+                } else if (err.response.data.error) {
+                    errorMessage = err.response.data.error;
+                } else if (err.response.data.detail) {
+                    errorMessage = err.response.data.detail;
+                } else if (err.response.data.errors) {
+                    errorMessage = Object.values(err.response.data.errors).join(', ');
+                }
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+            
+            setError(errorMessage);
         } finally {
             setUploadingProfilePic(false);
-            // Limpiar el input de archivo
+            // Clear file input
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -301,15 +348,6 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
         <Box sx={{ width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
             <Card sx={{ width: '100%', borderRadius: 0, mb: 2 }}>
                 <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {onBackToIssues && (
-                        <Button 
-                            variant="outlined" 
-                            onClick={onBackToIssues}
-                            sx={{ mr: 2 }}
-                        >
-                            Volver a Issues
-                        </Button>
-                    )}
                     <FormControl fullWidth>
                         <InputLabel>Seleccionar Usuario</InputLabel>
                         <Select

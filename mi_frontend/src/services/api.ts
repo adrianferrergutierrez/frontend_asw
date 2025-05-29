@@ -142,18 +142,55 @@ export const updateUserProfilePic = (id: number, file: File) => {
     console.log('API call to update user profile pic:', {
         url: `/users/${id}/profile_pic_edit`,
         method: 'PUT',
-        file: file.name
+        file: file.name,
+        fileType: file.type,
+        fileSize: file.size
     });
     
     const formData = new FormData();
-    formData.append('profile_pic', file);
+    // Usar exactamente el nombre de campo 'avatar' como especifica la API
+    formData.append('avatar', file);
+    
+    // Log the FormData contents
+    for (let pair of formData.entries()) {
+        console.log('FormData entry:', pair[0], pair[1]);
+    }
     
     return api.put(`/users/${id}/profile_pic_edit`, formData, {
         headers: {
             'X-API-Key': API_KEY,
             'X-User-ID': id.toString(),
             'Content-Type': 'multipart/form-data'
+        },
+        // Add timeout and validate status
+        timeout: 30000,
+        validateStatus: function (status) {
+            return status < 500; // Resolve only if the status code is less than 500
         }
+    }).then(response => {
+        console.log('Profile picture upload response:', response);
+        return response;
+    }).catch(error => {
+        // Log detailed error information
+        console.error('Profile picture upload error details:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            headers: error.response?.headers,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                headers: error.config?.headers,
+                data: error.config?.data
+            }
+        });
+
+        // If we have a response with data, log it specifically
+        if (error.response?.data) {
+            console.error('Server error response:', JSON.stringify(error.response.data, null, 2));
+        }
+
+        throw error;
     });
 };
 
