@@ -1,6 +1,8 @@
 export interface User {
     id: number;
     email: string;
+    name?: string;
+    avatar_url?: string;
 }
 
 export interface UserDetail extends User {
@@ -52,8 +54,10 @@ export interface Attachment {
     filename: string;
     content_type: string;
     created_at: string;
+    updated_at?: string;
+    url?: string;
     url_directa: string;
-    url_redireccion: string;
+    size?: number;
 }
 
 export interface Comment {

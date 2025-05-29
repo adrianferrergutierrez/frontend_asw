@@ -11,8 +11,14 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Alert
+    Alert,
+    Chip,
+    OutlinedInput,
+    Checkbox,
+    ListItemText
 } from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { updateIssue, getUsers } from '../services/api';
 import type { Issue, IssueType, Severity, Priority, Status, User } from '../types/index';
 
@@ -44,7 +50,9 @@ const EditIssueForm = ({
         severity_id: '',
         priority_id: '',
         status_id: '',
-        assignee_id: ''
+        assignee_id: '',
+        deadline: null as Date | null,
+        watcher_ids: [] as number[]
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -75,7 +83,9 @@ const EditIssueForm = ({
                 severity_id: issue.severity.id.toString(),
                 priority_id: issue.priority.id.toString(),
                 status_id: issue.status.id.toString(),
-                assignee_id: issue.assignee?.id.toString() || ''
+                assignee_id: issue.assignee_id ? issue.assignee_id.toString() : '',
+                deadline: issue.deadline ? new Date(issue.deadline) : null,
+                watcher_ids: issue.watcher_ids || []
             });
         }
     }, [issue]);
@@ -87,6 +97,13 @@ const EditIssueForm = ({
         }));
     };
 
+    const handleDateChange = (newDate: Date | null) => {
+        setFormData(prev => ({
+            ...prev,
+            deadline: newDate
+        }));
+    };
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!issue) return;
@@ -95,14 +112,20 @@ const EditIssueForm = ({
         setError(null);
 
         try {
-            await updateIssue(issue.id, {
+            const issueData = {
                 ...formData,
                 issue_type_id: parseInt(formData.issue_type_id),
                 severity_id: parseInt(formData.severity_id),
                 priority_id: parseInt(formData.priority_id),
                 status_id: parseInt(formData.status_id),
-                assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null
-            });
+                assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null,
+                deadline: formData.deadline ? formData.deadline.toISOString() : null,
+                // Asegurarnos de que watcher_ids se incluya explícitamente
+                watcher_ids: formData.watcher_ids
+            };
+
+            console.log('Updating issue with data:', issueData);
+            await updateIssue(issue.id, issueData);
             onIssueUpdated();
             onClose();
         } catch (err: any) {
@@ -214,11 +237,53 @@ const EditIssueForm = ({
                                 </MenuItem>
                                 {users.map((user) => (
                                     <MenuItem key={user.id} value={user.id}>
-                                        {user.username}
+                                        {user.name || user.email}
                                     </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
+                        <FormControl fullWidth>
+                            <InputLabel>Observadores</InputLabel>
+                            <Select
+                                multiple
+                                value={formData.watcher_ids}
+                                onChange={handleChange('watcher_ids')}
+                                input={<OutlinedInput label="Observadores" />}
+                                renderValue={(selected) => (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {(selected as number[]).map((value) => {
+                                            const user = users.find(u => u.id === value);
+                                            return (
+                                                <Chip 
+                                                    key={value} 
+                                                    label={user ? (user.name || user.email) : `Usuario ${value}`} 
+                                                />
+                                            );
+                                        })}
+                                    </Box>
+                                )}
+                            >
+                                {users.map((user) => (
+                                    <MenuItem key={user.id} value={user.id}>
+                                        <Checkbox checked={formData.watcher_ids.indexOf(user.id) > -1} />
+                                        <ListItemText primary={user.name || user.email} />
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <DatePicker
+                                label="Fecha límite"
+                                value={formData.deadline}
+                                onChange={handleDateChange}
+                                slotProps={{ 
+                                    textField: { 
+                                        fullWidth: true,
+                                        variant: 'outlined'
+                                    } 
+                                }}
+                            />
+                        </LocalizationProvider>
                     </Box>
                 </DialogContent>
                 <DialogActions>
