@@ -2,12 +2,26 @@ import axios from 'axios';
 
 const API_URL = 'https://waslab04-p1hk.onrender.com/api/v1';
 const API_KEY = 'FPNzyupb0yhy7tA3Ey8UT0fSvi4rbIrf';
+const API_KEY_2 = 'OPGPjVjDxM7u5jshpus4tKiTFjfplKtA';
+const API_KEY_3 = 'QyYrixzL75McEOkB6NlV1tcxG4IW5Ofw';
+const API_KEY_4 = 'eB5yqol72bRjlC9BazKWEYxuUiuhZF2A';
+const API_KEY_5 = '';
+
+// Función para obtener la API key correcta según el email del usuario
+const getApiKeyForUser = (userEmail: string) => {
+    console.log('User email:', userEmail);
+    if(userEmail === 'a1@gmail.com'){return API_KEY_2}
+    else if(userEmail === 'a2@gmail.com'){return API_KEY_4}
+    else if(userEmail === 'francesc.perez.venegas@estudiantat.upc.edu'){return API_KEY_3}
+    else if(userEmail === 'jan.santos@estudiantat.upc.edu'){return API_KEY_5}
+    return API_KEY;
+};
 
 const api = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': API_KEY
+        'X-API-Key': API_KEY // Default API key
     },
 });
 
@@ -45,110 +59,253 @@ interface GetIssuesParams {
     [key: string]: any; // Allow other potential filter params from IssueList's filters state
 }
 
-export const getIssues = (params?: GetIssuesParams) => api.get('/issues', { params });
-export const getIssueById = (id: number) => api.get(`/issues/${id}`);
-export const createIssue = (data: any) => api.post('/issues', data);
-export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, data);
-export const deleteIssue = (id: number) => api.delete(`/issues/${id}`);
+export const getIssues = (params?: GetIssuesParams) => api.get('/issues', { 
+    params,
+    headers: {
+        'X-API-Key': getApiKeyForUser(params?.user_email || '')
+    }
+});
+
+export const getIssueById = (id: number, userEmail: string) => api.get(`/issues/${id}`, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const createIssue = (data: any) => api.post('/issues', data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const deleteIssue = (id: number, userEmail: string) => api.delete(`/issues/${id}`, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
 
 // Comments
-export const getIssueComments = (issueId: number) => api.get(`/issues/${issueId}/comments`);
+export const getIssueComments = (issueId: number, userEmail: string) => api.get(`/issues/${issueId}/comments`, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
 export const createComment = (issueId: number, data: any) => {
     console.log('API call to create comment:', {
         url: `/issues/${issueId}/comments`,
         method: 'POST',
         data,
         headers: {
-            'X-API-Key': API_KEY,
+            'X-API-Key': getApiKeyForUser(data.user_email),
             'X-User-ID': data.user_id.toString(),
             'Content-Type': 'application/json'
         }
     });
 
-    // Usar el user_id que viene en data (usuario actual seleccionado)
-    const requestData = {
-        ...data,
-        user_id: data.user_id
-    };
-
-    return api.post(`/issues/${issueId}/comments`, requestData, {
+    return api.post(`/issues/${issueId}/comments`, data, {
         headers: {
-            'X-API-Key': API_KEY,
+            'X-API-Key': getApiKeyForUser(data.user_email),
             'X-User-ID': data.user_id.toString(),
             'Content-Type': 'application/json'
         }
     });
 };
+
 export const updateComment = (issueId: number, commentId: number, data: any) => 
-    api.put(`/issues/${issueId}/comments/${commentId}`, data);
-export const deleteComment = (issueId: number, commentId: number) => 
-    api.delete(`/issues/${issueId}/comments/${commentId}`);
+    api.put(`/issues/${issueId}/comments/${commentId}`, data, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(data.user_email)
+        }
+    });
+
+export const deleteComment = (issueId: number, commentId: number, userEmail: string) => 
+    api.delete(`/issues/${issueId}/comments/${commentId}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
 
 // Attachments
-export const getIssueAttachments = (issueId: number) => api.get(`/issues/${issueId}/attachments`);
-export const uploadAttachment = (issueId: number, file: File) => {
+export const getIssueAttachments = (issueId: number, userEmail: string) => api.get(`/issues/${issueId}/attachments`, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const uploadAttachment = (issueId: number, file: File, userEmail: string) => {
     const formData = new FormData();
     formData.append('attachment', file);
     return api.post(`/issues/${issueId}/attachments`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
+            'X-API-Key': getApiKeyForUser(userEmail)
         },
     });
 };
-export const deleteAttachment = (issueId: number, attachmentId: number) => 
-    api.delete(`/issues/${issueId}/attachments/${attachmentId}`);
+
+export const deleteAttachment = (issueId: number, attachmentId: number, userEmail: string) => 
+    api.delete(`/issues/${issueId}/attachments/${attachmentId}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
 
 // Issue Types
-export const getIssueTypes = () => api.get('/issue_types');
-export const createIssueType = (data: any) => api.post('/issue_types', data);
-export const updateIssueType = (id: number, data: any) => api.put(`/issue_types/${id}`, data);
-export const deleteIssueType = (id: number, replaceWithId?: number) => api.delete(`/issue_types/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
+export const getIssueTypes = (userEmail: string) => api.get('/issue_types', {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const createIssueType = (data: any) => api.post('/issue_types', data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const updateIssueType = (id: number, data: any) => api.put(`/issue_types/${id}`, data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const deleteIssueType = (id: number, userEmail: string, replaceWithId?: number) => 
+    api.delete(`/issue_types/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
 
 // Severities
-export const getSeverities = () => api.get('/severities');
-export const createSeverity = (data: any) => api.post('/severities', data);
-export const updateSeverity = (id: number, data: any) => api.put(`/severities/${id}`, data);
-export const deleteSeverity = (id: number, replaceWithId?: number) => api.delete(`/severities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
+export const getSeverities = (userEmail: string) => api.get('/severities', {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const createSeverity = (data: any) => api.post('/severities', data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const updateSeverity = (id: number, data: any) => api.put(`/severities/${id}`, data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const deleteSeverity = (id: number, userEmail: string, replaceWithId?: number) => 
+    api.delete(`/severities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
 
 // Priorities
-export const getPriorities = () => api.get('/priorities');
-export const createPriority = (data: any) => api.post('/priorities', data);
-export const updatePriority = (id: number, data: any) => api.put(`/priorities/${id}`, data);
-export const deletePriority = (id: number, replaceWithId?: number) => api.delete(`/priorities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
+export const getPriorities = (userEmail: string) => api.get('/priorities', {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const createPriority = (data: any) => api.post('/priorities', data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const updatePriority = (id: number, data: any) => api.put(`/priorities/${id}`, data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const deletePriority = (id: number, userEmail: string, replaceWithId?: number) => 
+    api.delete(`/priorities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
+
 // Statuses
-export const getStatuses = () => api.get('/statuses');
-export const createStatus = (data: any) => api.post('/statuses', data);
-export const updateStatus = (id: number, data: any) => api.put(`/statuses/${id}`, data);
-export const deleteStatus = (id: number, replaceWithId?: number) => api.delete(`/statuses/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
+export const getStatuses = (userEmail: string) => api.get('/statuses', {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const createStatus = (data: any) => api.post('/statuses', data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const updateStatus = (id: number, data: any) => api.put(`/statuses/${id}`, data, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(data.user_email)
+    }
+});
+
+export const deleteStatus = (id: number, userEmail: string, replaceWithId?: number) => 
+    api.delete(`/statuses/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(userEmail)
+        }
+    });
+
 // Users
-export const getUsers = () => api.get('/users');
-export const getUserById = (id: number) => api.get(`/users/${id}`);
-export const updateUser = (id: number, data: any) => {
+export const getUsers = (userEmail: string) => api.get('/users', {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const getUserById = (id: number, userEmail: string) => api.get(`/users/${id}`, {
+    headers: {
+        'X-API-Key': getApiKeyForUser(userEmail)
+    }
+});
+
+export const updateUser = (id: number, data: any, userEmail: string) => {
     console.log('API call to update user bio:', {
         url: `/users/${id}/bio_edit`,
         method: 'PUT',
-        data
+        data,
+        userEmail,
+        apiKey: getApiKeyForUser(userEmail)
     });
+    
     return api.put(`/users/${id}/bio_edit`, data, {
         headers: {
-            'X-API-Key': API_KEY,
+            'X-API-Key': getApiKeyForUser(userEmail),
             'X-User-ID': id.toString(),
             'Content-Type': 'application/json'
         }
     });
 };
 
-export const updateUserProfilePic = (id: number, file: File) => {
+export const updateUserProfilePic = (id: number, file: File, userEmail: string) => {
+    const apiKey = getApiKeyForUser(userEmail);
+    
     console.log('API call to update user profile pic:', {
         url: `/users/${id}/profile_pic_edit`,
         method: 'PUT',
         file: file.name,
         fileType: file.type,
-        fileSize: file.size
+        fileSize: file.size,
+        userEmail: userEmail,
+        apiKey: apiKey
     });
     
     const formData = new FormData();
-    // Usar exactamente el nombre de campo 'avatar' como especifica la API
     formData.append('avatar', file);
     
     // Log the FormData contents
@@ -158,20 +315,18 @@ export const updateUserProfilePic = (id: number, file: File) => {
     
     return api.put(`/users/${id}/profile_pic_edit`, formData, {
         headers: {
-            'X-API-Key': API_KEY,
+            'X-API-Key': apiKey,
             'X-User-ID': id.toString(),
             'Content-Type': 'multipart/form-data'
         },
-        // Add timeout and validate status
         timeout: 30000,
         validateStatus: function (status) {
-            return status < 500; // Resolve only if the status code is less than 500
+            return status < 500;
         }
     }).then(response => {
         console.log('Profile picture upload response:', response);
         return response;
     }).catch(error => {
-        // Log detailed error information
         console.error('Profile picture upload error details:', {
             status: error.response?.status,
             statusText: error.response?.statusText,
@@ -185,7 +340,6 @@ export const updateUserProfilePic = (id: number, file: File) => {
             }
         });
 
-        // If we have a response with data, log it specifically
         if (error.response?.data) {
             console.error('Server error response:', JSON.stringify(error.response.data, null, 2));
         }
