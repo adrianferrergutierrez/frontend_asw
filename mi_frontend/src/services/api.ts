@@ -72,17 +72,43 @@ export const getIssueById = (id: number, userEmail: string) => api.get(`/issues/
     }
 });
 
-export const createIssue = (data: any) => api.post('/issues', data, {
-    headers: {
-        'X-API-Key': getApiKeyForUser(data.user_email)
-    }
-});
+export const createIssue = (data: any) => {
+    // Format the data correctly for the API
+    // If data contains watcher_ids, we need to ensure it's inside an 'issue' object
+    const formattedData = data.watcher_ids !== undefined ? {
+        issue: {
+            ...data,
+            watcher_ids: data.watcher_ids
+        }
+    } : data;
 
-export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, data, {
-    headers: {
-        'X-API-Key': getApiKeyForUser(data.user_email)
-    }
-});
+    console.log('Formatted data for create:', formattedData);
+    
+    return api.post('/issues', formattedData, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(data.user_email)
+        }
+    });
+};
+
+export const updateIssue = (id: number, data: any) => {
+    // Format the data correctly for the API
+    // If data contains watcher_ids, we need to ensure it's inside an 'issue' object
+    const formattedData = data.watcher_ids !== undefined ? {
+        issue: {
+            ...data,
+            watcher_ids: data.watcher_ids
+        }
+    } : data;
+
+    console.log('Formatted data for update:', formattedData);
+    
+    return api.put(`/issues/${id}`, formattedData, {
+        headers: {
+            'X-API-Key': getApiKeyForUser(data.user_email)
+        }
+    });
+};
 
 export const deleteIssue = (id: number, userEmail: string) => api.delete(`/issues/${id}`, {
     headers: {
