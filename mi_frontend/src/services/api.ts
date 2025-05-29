@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = 'https://waslab04-p1hk.onrender.com/api/v1';
-const API_KEY = 'OPGPjVjDxM7u5jshpus4tKiTFjfplKtA';
+const API_KEY = 'FPNzyupb0yhy7tA3Ey8UT0fSvi4rbIrf';
 
 const api = axios.create({
     baseURL: API_URL,
