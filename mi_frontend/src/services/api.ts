@@ -36,7 +36,16 @@ api.interceptors.response.use(
 );
 
 // Issues
-export const getIssues = () => api.get('/issues');
+type OrderByOptions = 'type' | 'severity' | 'priority' | 'issue' | 'status' | 'modified' | 'assign_to';
+
+interface GetIssuesParams {
+    order_by?: OrderByOptions;
+    order_direction?: 'asc' | 'desc';
+    // We can add other filter parameters here in the future if needed
+    [key: string]: any; // Allow other potential filter params from IssueList's filters state
+}
+
+export const getIssues = (params?: GetIssuesParams) => api.get('/issues', { params });
 export const getIssueById = (id: number) => api.get(`/issues/${id}`);
 export const createIssue = (data: any) => api.post('/issues', data);
 export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, data);
