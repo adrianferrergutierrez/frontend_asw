@@ -556,6 +556,7 @@ const IssueList = forwardRef((props: IssueListProps, ref) => {
                 severities={severities}
                 priorities={priorities}
                 statuses={statuses}
+                currentUser={currentUser}
             />
 
             <EditIssueForm
