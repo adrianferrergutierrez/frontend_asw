@@ -186,7 +186,7 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
             
             console.log('Sending update request with data:', updateData);
             
-            const response = await updateUser(user.id, updateData);
+            const response = await updateUser(user.id, updateData, user.email);
             
             console.log('Update response:', response);
             if (response.data && response.data.bio) {
@@ -236,10 +236,11 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
             console.log('Uploading file:', {
                 name: file.name,
                 type: file.type,
-                size: file.size
+                size: file.size,
+                userEmail: user.email
             });
             
-            const response = await updateUserProfilePic(user.id, file);
+            const response = await updateUserProfilePic(user.id, file, user.email);
             
             if (response.data && response.data.avatar_url) {
                 setUser(prev => prev ? { ...prev, avatar_url: response.data.avatar_url } : null);
