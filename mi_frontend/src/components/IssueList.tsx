@@ -42,7 +42,11 @@ interface IssueListFilters {
     order_direction: 'asc' | 'desc';
 }
 
-const IssueList = forwardRef((_props, ref) => { // props replaced with _props as it's unused
+interface IssueListProps {
+    onViewUserProfile?: (userId: number) => void;
+}
+
+const IssueList = forwardRef((props: IssueListProps, ref) => {
     const [issues, setIssues] = useState<Issue[]>([]);
     const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
     const [severities, setSeverities] = useState<Severity[]>([]);
@@ -523,6 +527,27 @@ const IssueList = forwardRef((_props, ref) => { // props replaced with _props as
                 )}
             </Stack>
 
+            <IssueDetail
+                open={detailDialogOpen}
+                onClose={() => {
+                    setDetailDialogOpen(false);
+                    setSelectedIssue(null);
+                }}
+                issue={selectedIssue}
+                onEdit={(issue) => {
+                    setEditDialogOpen(true);
+                    setSelectedIssue(issue);
+                    setDetailDialogOpen(false);
+                }}
+                onDelete={(issue) => {
+                    setDeleteDialogOpen(true);
+                    setSelectedIssue(issue);
+                    setDetailDialogOpen(false);
+                }}
+                currentUser={currentUser!}
+                onViewUserProfile={props.onViewUserProfile}
+            />
+
             <CreateIssueForm
                 open={createDialogOpen}
                 onClose={() => setCreateDialogOpen(false)}
@@ -557,25 +582,7 @@ const IssueList = forwardRef((_props, ref) => { // props replaced with _props as
                 issue={selectedIssue}
             />
 
-            <IssueDetail
-                open={detailDialogOpen}
-                onClose={() => {
-                    setDetailDialogOpen(false);
-                    setSelectedIssue(null);
-                }}
-                issue={selectedIssue}
-                onEdit={(issue) => {
-                    setDetailDialogOpen(false);
-                    setSelectedIssue(issue);
-                    setEditDialogOpen(true);
-                }}
-                onDelete={(issue) => {
-                    setDetailDialogOpen(false);
-                    setSelectedIssue(issue);
-                    setDeleteDialogOpen(true);
-                }}
-                currentUser={currentUser!}
-            />
+            {/* Este componente IssueDetail es redundante y se puede eliminar */}
 
             {/* Bulk Issue Creator Dialog */}
             <Dialog open={bulkCreateDialogOpen} onClose={() => setBulkCreateDialogOpen(false)} maxWidth="sm" fullWidth>

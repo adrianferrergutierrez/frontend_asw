@@ -122,6 +122,7 @@ export const updateStatus = (id: number, data: any) => api.put(`/statuses/${id}`
 export const deleteStatus = (id: number, replaceWithId?: number) => api.delete(`/statuses/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
 // Users
 export const getUsers = () => api.get('/users');
+export const getUserById = (id: number) => api.get(`/users/${id}`);
 export const updateUser = (id: number, data: any) => {
     console.log('API call to update user bio:', {
         url: `/users/${id}/bio_edit`,
@@ -137,4 +138,23 @@ export const updateUser = (id: number, data: any) => {
     });
 };
 
-export default api; 
+export const updateUserProfilePic = (id: number, file: File) => {
+    console.log('API call to update user profile pic:', {
+        url: `/users/${id}/profile_pic_edit`,
+        method: 'PUT',
+        file: file.name
+    });
+    
+    const formData = new FormData();
+    formData.append('profile_pic', file);
+    
+    return api.put(`/users/${id}/profile_pic_edit`, formData, {
+        headers: {
+            'X-API-Key': API_KEY,
+            'X-User-ID': id.toString(),
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+export default api;

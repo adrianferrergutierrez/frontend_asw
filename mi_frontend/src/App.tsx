@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -386,13 +386,20 @@ function SettingsDialog({ open, onClose }: { open: boolean, onClose: () => void 
 function App() {
   const [currentPage, setCurrentPage] = useState<'issues' | 'profile'>('issues');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const issueListRef = useRef<{ fetchData: () => void }>(null); // <-- Añade este ref
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const issueListRef = useRef<{ fetchData: () => void }>(null);
 
   useEffect(() => {
     if (currentPage === 'issues') {
       issueListRef.current?.fetchData(); // Llama a fetchData cuando se cambia a Issues
     }
   }, [currentPage]);
+  
+  // Función para ver el perfil de un usuario específico
+  const handleViewUserProfile = (userId: number) => {
+    setSelectedUserId(userId);
+    setCurrentPage('profile');
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -433,7 +440,20 @@ function App() {
           </Toolbar>
         </AppBar>
         <Box component="main" sx={{ flexGrow: 1, width: '100%' }}>
-          {currentPage === 'issues' ? ( <IssueList ref={issueListRef} /> ) : (<Profile />)}
+          {currentPage === 'issues' ? (
+            <IssueList 
+              ref={issueListRef} 
+              onViewUserProfile={handleViewUserProfile}
+            />
+          ) : (
+            <Profile 
+              selectedUserId={selectedUserId} 
+              onBackToIssues={() => {
+                setSelectedUserId(null);
+                setCurrentPage('issues');
+              }}
+            />
+          )}
         </Box>
         <SettingsDialog open={settingsOpen} onClose={() => { setSettingsOpen(false); issueListRef.current?.fetchData();}} />
       </Box>

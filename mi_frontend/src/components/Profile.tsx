@@ -7,9 +7,7 @@ import {
     Avatar,
     Tabs,
     Tab,
-    Grid,
     Chip,
-    Divider,
     Stack,
     CircularProgress,
     Alert,
@@ -23,10 +21,12 @@ import {
     FormControl,
     InputLabel,
     Select,
-    MenuItem
+    MenuItem,
+    Tooltip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { getIssues, getUsers, updateUser, getIssueComments } from '../services/api';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import { getIssues, getUsers, updateUser, updateUserProfilePic, getIssueComments } from '../services/api';
 import type { Issue, UserDetail, Comment } from '../types/index';
 import IssueDetail from './IssueDetail';
 
@@ -56,7 +56,12 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
-const Profile = () => {
+interface ProfileProps {
+    selectedUserId?: number | null;
+    onBackToIssues?: () => void;
+}
+
+const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
     const [user, setUser] = useState<UserDetail | null>(() => {
         const savedUser = localStorage.getItem('selectedUser');
         return savedUser ? JSON.parse(savedUser) : null;
@@ -71,7 +76,8 @@ const Profile = () => {
     const [userComments, setUserComments] = useState<Array<Comment & { issueSubject: string; issueId: number }>>([]);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [issueDetailOpen, setIssueDetailOpen] = useState(false);
-    const isFirstLoad = useRef(true);
+    const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -84,8 +90,15 @@ const Profile = () => {
                 setUsers(usersResponse.data);
                 setIssues(issuesResponse.data);
                 
-                // Si no hay usuario seleccionado, seleccionar el primero
-                if (!user && usersResponse.data.length > 0) {
+                // Si hay un userId específico, seleccionar ese usuario
+                if (selectedUserId) {
+                    const selectedUser = usersResponse.data.find(u => u.id === selectedUserId);
+                    if (selectedUser) {
+                        setUser(selectedUser);
+                    }
+                }
+                // Si no hay usuario seleccionado, seleccionar el primero o el del localStorage
+                else if (!user && usersResponse.data.length > 0) {
                     const firstUser = usersResponse.data[0];
                     setUser(firstUser);
                     localStorage.setItem('selectedUser', JSON.stringify(firstUser));
@@ -154,7 +167,7 @@ const Profile = () => {
         }
     };
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
 
@@ -191,6 +204,43 @@ const Profile = () => {
                 config: err.config
             });
             setError('Error al actualizar la biografía');
+        }
+    };
+    
+    const handleProfilePicClick = () => {
+        if (!user) return;
+        
+        // Solo permitir editar la foto si es el usuario seleccionado actualmente
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+    
+    const handleProfilePicChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!user || !event.target.files || event.target.files.length === 0) return;
+        
+        try {
+            setUploadingProfilePic(true);
+            const file = event.target.files[0];
+            const response = await updateUserProfilePic(user.id, file);
+            
+            if (response.data && response.data.avatar_url) {
+                setUser(prev => prev ? { ...prev, avatar_url: response.data.avatar_url } : null);
+                // Actualizar el usuario en localStorage
+                if (user) {
+                    const updatedUser = { ...user, avatar_url: response.data.avatar_url };
+                    localStorage.setItem('selectedUser', JSON.stringify(updatedUser));
+                }
+            }
+        } catch (err: any) {
+            console.error('Error updating profile picture:', err);
+            setError('Error al actualizar la foto de perfil');
+        } finally {
+            setUploadingProfilePic(false);
+            // Limpiar el input de archivo
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -250,13 +300,23 @@ const Profile = () => {
     return (
         <Box sx={{ width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
             <Card sx={{ width: '100%', borderRadius: 0, mb: 2 }}>
-                <CardContent>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {onBackToIssues && (
+                        <Button 
+                            variant="outlined" 
+                            onClick={onBackToIssues}
+                            sx={{ mr: 2 }}
+                        >
+                            Volver a Issues
+                        </Button>
+                    )}
                     <FormControl fullWidth>
                         <InputLabel>Seleccionar Usuario</InputLabel>
                         <Select
                             value={user.id}
                             label="Seleccionar Usuario"
                             onChange={handleUserChange}
+                            disabled={!!selectedUserId}
                         >
                             {users.map((u) => (
                                 <MenuItem key={u.id} value={u.id}>
@@ -273,11 +333,43 @@ const Profile = () => {
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
                         <Box sx={{ width: { xs: '100%', md: '33%' } }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <Avatar
-                                    src={user.avatar_url}
-                                    alt={user.name}
-                                    sx={{ width: 120, height: 120, mb: 2 }}
-                                />
+                                <Box sx={{ position: 'relative' }}>
+                                    <Avatar
+                                        src={user.avatar_url}
+                                        alt={user.name}
+                                        sx={{ 
+                                            width: 120, 
+                                            height: 120, 
+                                            mb: 2,
+                                            cursor: 'pointer',
+                                            '&:hover': { opacity: 0.8 }
+                                        }}
+                                        onClick={handleProfilePicClick}
+                                    />
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handleProfilePicChange}
+                                    />
+                                    <Tooltip title="Cambiar foto de perfil">
+                                        <IconButton 
+                                            sx={{ 
+                                                position: 'absolute', 
+                                                bottom: 16, 
+                                                right: 0,
+                                                backgroundColor: 'white',
+                                                '&:hover': { backgroundColor: '#f5f5f5' }
+                                            }}
+                                            size="small"
+                                            onClick={handleProfilePicClick}
+                                            disabled={uploadingProfilePic}
+                                        >
+                                            <PhotoCameraIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
                                 <Typography variant="h5" gutterBottom>
                                     {user.name || user.email}
                                 </Typography>
