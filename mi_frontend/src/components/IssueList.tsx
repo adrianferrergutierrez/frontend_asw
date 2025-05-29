@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { 
     Box, 
     Card, 
@@ -22,8 +21,9 @@ import CreateIssueForm from './CreateIssueForm';
 import EditIssueForm from './EditIssueForm';
 import DeleteIssueDialog from './DeleteIssueDialog';
 import IssueDetail from './IssueDetail';
+import React, {useImperativeHandle, forwardRef, useState, useEffect} from 'react';
 
-const IssueList = () => {
+const IssueList = forwardRef((props, ref) => {
     const [issues, setIssues] = useState<Issue[]>([]);
     const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
     const [severities, setSeverities] = useState<Severity[]>([]);
@@ -40,6 +40,11 @@ const IssueList = () => {
         const savedUser = localStorage.getItem('selectedUser');
         return savedUser ? JSON.parse(savedUser) : null;
     });
+
+    useImperativeHandle(ref, () => ({
+        fetchData
+    }))
+
     const [filters, setFilters] = useState({
         title: '',
         description: '',
@@ -386,6 +391,6 @@ const IssueList = () => {
             />
         </Box>
     );
-};
+});
 
 export default IssueList; 

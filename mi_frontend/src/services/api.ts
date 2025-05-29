@@ -93,26 +93,24 @@ export const deleteAttachment = (issueId: number, attachmentId: number) =>
 export const getIssueTypes = () => api.get('/issue_types');
 export const createIssueType = (data: any) => api.post('/issue_types', data);
 export const updateIssueType = (id: number, data: any) => api.put(`/issue_types/${id}`, data);
-export const deleteIssueType = (id: number) => api.delete(`/issue_types/${id}`);
+export const deleteIssueType = (id: number, replaceWithId?: number) => api.delete(`/issue_types/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
 
 // Severities
 export const getSeverities = () => api.get('/severities');
 export const createSeverity = (data: any) => api.post('/severities', data);
 export const updateSeverity = (id: number, data: any) => api.put(`/severities/${id}`, data);
-export const deleteSeverity = (id: number) => api.delete(`/severities/${id}`);
+export const deleteSeverity = (id: number, replaceWithId?: number) => api.delete(`/severities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
 
 // Priorities
 export const getPriorities = () => api.get('/priorities');
 export const createPriority = (data: any) => api.post('/priorities', data);
 export const updatePriority = (id: number, data: any) => api.put(`/priorities/${id}`, data);
-export const deletePriority = (id: number) => api.delete(`/priorities/${id}`);
-
+export const deletePriority = (id: number, replaceWithId?: number) => api.delete(`/priorities/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
 // Statuses
 export const getStatuses = () => api.get('/statuses');
 export const createStatus = (data: any) => api.post('/statuses', data);
 export const updateStatus = (id: number, data: any) => api.put(`/statuses/${id}`, data);
-export const deleteStatus = (id: number) => api.delete(`/statuses/${id}`);
-
+export const deleteStatus = (id: number, replaceWithId?: number) => api.delete(`/statuses/${id}${replaceWithId ? `?issues_go_to_id=${replaceWithId}` : ''}`);
 // Users
 export const getUsers = () => api.get('/users');
 export const updateUser = (id: number, data: any) => {
