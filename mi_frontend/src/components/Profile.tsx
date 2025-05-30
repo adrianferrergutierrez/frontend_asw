@@ -24,6 +24,7 @@ import {
     MenuItem,
     Tooltip
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import EditIcon from '@mui/icons-material/Edit';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import { getIssues, getUsers, updateUser, updateUserProfilePic, getIssueComments } from '../services/api';
@@ -92,7 +93,7 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
                 
                 // Si hay un userId específico, seleccionar ese usuario
                 if (selectedUserId) {
-                    const selectedUser = usersResponse.data.find(u => u.id === selectedUserId);
+                    const selectedUser = usersResponse.data.find((u: UserDetail) => u.id === selectedUserId);
                     if (selectedUser) {
                         setUser(selectedUser);
                     }
@@ -159,8 +160,8 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
         }
     }, [user, issues]);
 
-    const handleUserChange = (event: any) => {
-        const selectedUser = users.find(u => u.id === event.target.value);
+    const handleUserChange = (event: SelectChangeEvent<number>) => {
+        const selectedUser = users.find((u: UserDetail) => u.id === event.target.value);
         if (selectedUser) {
             setUser(selectedUser);
             localStorage.setItem('selectedUser', JSON.stringify(selectedUser));
@@ -186,7 +187,7 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
             
             console.log('Sending update request with data:', updateData);
             
-            const response = await updateUser(user.id, updateData, user.email);
+            const response = await updateUser(user.id, updateData);
             
             console.log('Update response:', response);
             if (response.data && response.data.bio) {
@@ -236,11 +237,10 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
             console.log('Uploading file:', {
                 name: file.name,
                 type: file.type,
-                size: file.size,
-                userEmail: user.email
+                size: file.size
             });
             
-            const response = await updateUserProfilePic(user.id, file, user.email);
+            const response = await updateUserProfilePic(user.id, file);
             
             if (response.data && response.data.avatar_url) {
                 setUser(prev => prev ? { ...prev, avatar_url: response.data.avatar_url } : null);
@@ -251,44 +251,10 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
                 }
             }
         } catch (err: any) {
-            console.error('Error updating profile picture:', err);
-            
-            // Log the full error response for debugging
-            console.error('Full error response:', {
-                status: err.response?.status,
-                data: err.response?.data,
-                message: err.message,
-                headers: err.response?.headers
-            });
-
-            // Try to get the most specific error message
-            let errorMessage = 'Error al actualizar la foto de perfil';
-            
-            if (err.response?.data) {
-                console.error('Server error data:', JSON.stringify(err.response.data, null, 2));
-                
-                if (typeof err.response.data === 'string') {
-                    errorMessage = err.response.data;
-                } else if (err.response.data.message) {
-                    errorMessage = err.response.data.message;
-                } else if (err.response.data.error) {
-                    errorMessage = err.response.data.error;
-                } else if (err.response.data.detail) {
-                    errorMessage = err.response.data.detail;
-                } else if (err.response.data.errors) {
-                    errorMessage = Object.values(err.response.data.errors).join(', ');
-                }
-            } else if (err.message) {
-                errorMessage = err.message;
-            }
-            
-            setError(errorMessage);
+            console.error('Error uploading profile picture:', err);
+            setError(err.message || 'Error al actualizar la foto de perfil');
         } finally {
             setUploadingProfilePic(false);
-            // Clear file input
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
         }
     };
 
