@@ -138,7 +138,13 @@ export const updateUser = (id: number, data: any) => {
     });
 };
 
-export const updateUserProfilePic = (id: number, file: File) => {
+// Define the type for the profile pic response
+interface ProfilePicResponse {
+  avatar_url: string;
+  [key: string]: any; // For any other properties that might be in the response
+}
+
+export const updateUserProfilePic = (id: number, file: File): Promise<{ data: ProfilePicResponse }> => {
     console.log('API call to update user profile pic:', {
         url: `/users/${id}/profile_pic_edit`,
         method: 'PUT',
@@ -161,7 +167,7 @@ export const updateUserProfilePic = (id: number, file: File) => {
         
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
-                resolve({ data: JSON.parse(xhr.responseText) });
+                resolve({ data: JSON.parse(xhr.responseText) as ProfilePicResponse });
             } else {
                 reject({
                     status: xhr.status,
