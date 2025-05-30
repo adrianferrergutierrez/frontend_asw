@@ -92,8 +92,7 @@ const Profile = ({ selectedUserId, onBackToIssues }: ProfileProps) => {
                 
                 // Si hay un userId específico, seleccionar ese usuario
                 if (selectedUserId) {
-                    const selectedUser = usersResponse.data.find(u => u.id === selectedUserId);
-                    if (selectedUser) {
+                        const selectedUser = usersResponse.data.find((u: UserDetail) => u.id === selectedUserId);                    if (selectedUser) {
                         setUser(selectedUser);
                     }
                 }
