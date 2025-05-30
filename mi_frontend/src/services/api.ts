@@ -47,8 +47,8 @@ interface GetIssuesParams {
 
 export const getIssues = (params?: GetIssuesParams) => api.get('/issues', { params });
 export const getIssueById = (id: number) => api.get(`/issues/${id}`);
-export const createIssue = (data: any) => api.post('/issues', data);
-export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, data);
+export const createIssue = (data: any) => api.post('/issues', { issue: data });
+export const updateIssue = (id: number, data: any) => api.put(`/issues/${id}`, { issue: data });
 export const deleteIssue = (id: number) => api.delete(`/issues/${id}`);
 
 // Comments
@@ -138,22 +138,54 @@ export const updateUser = (id: number, data: any) => {
     });
 };
 
-export const updateUserProfilePic = (id: number, file: File) => {
+// Define the type for the profile pic response
+interface ProfilePicResponse {
+  avatar_url: string;
+  [key: string]: any; // For any other properties that might be in the response
+}
+
+export const updateUserProfilePic = (id: number, file: File): Promise<{ data: ProfilePicResponse }> => {
     console.log('API call to update user profile pic:', {
         url: `/users/${id}/profile_pic_edit`,
         method: 'PUT',
         file: file.name
     });
     
+    // Create a new FormData instance
     const formData = new FormData();
+    
+    // Try with both parameter names to cover all bases
+    formData.append('avatar', file);
     formData.append('profile_pic', file);
     
-    return api.put(`/users/${id}/profile_pic_edit`, formData, {
-        headers: {
-            'X-API-Key': API_KEY,
-            'X-User-ID': id.toString(),
-            'Content-Type': 'multipart/form-data'
-        }
+    // Create a direct XMLHttpRequest for more control
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', `${API_URL}/users/${id}/profile_pic_edit`);
+        xhr.setRequestHeader('X-API-Key', API_KEY);
+        xhr.setRequestHeader('X-User-ID', id.toString());
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve({ data: JSON.parse(xhr.responseText) as ProfilePicResponse });
+            } else {
+                reject({
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    response: xhr.responseText
+                });
+            }
+        };
+        
+        xhr.onerror = function() {
+            reject({
+                status: xhr.status,
+                statusText: xhr.statusText,
+                response: xhr.responseText
+            });
+        };
+        
+        xhr.send(formData);
     });
 };
 
