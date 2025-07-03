@@ -75,7 +75,7 @@ Copy and paste this link into your browser to use the application locally.
 
 
 ## Images of the web app
-![alt text] (https://github.com/adrianferrergutierrez/frontend_asw/blob/main/Captura%20de%20pantalla%20(2).png)
+![alt text](https://github.com/adrianferrergutierrez/frontend_asw/blob/main/Captura%20de%20pantalla%20(2).png)
 ![alt text](https://github.com/adrianferrergutierrez/frontend_asw/blob/main/Captura%20de%20pantalla%20(3).png)
 ![alt text](https://github.com/adrianferrergutierrez/frontend_asw/blob/main/Captura%20de%20pantalla%20(4).png)
 
